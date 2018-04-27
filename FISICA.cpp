@@ -9,6 +9,13 @@
 #include <time.h>
 #include <cmath>
 
+//Velocidade em m/s
+//AceleraÃ§Ã£o em m/sÂ²
+//Raio em m
+#define VMAX 2
+#define AMAX 0.5
+#define RAIO 0.2
+
 using namespace std;
 
 
@@ -47,29 +54,10 @@ void formatar(string linha, double* T, double* X, double* Y){
 		sY.push_back(car);
 		cont++;
 	}
-	//cout << "sT = " << sT << endl << "sX = " << sX << endl << "sY = " << sY << endl << endl;
 	*T = stringToDouble(sT);
 	*X = stringToDouble(sX);
 	*Y = stringToDouble(sY);
 }
-
-//FUNÇÃO DE X
-//y = -0.005x² + 0.5x + 1
-
-//DERIVADA (Velocidade X)
-//y = -0.01x + 0.5
-
-//DERIVADA DE DERIVADA (Aceleração X)
-//y = -0.01
-
-//FUNÇÃO DE Y
-//y = -0.008x² + 0.4x + 0.5
-
-//DERIVADA (Velocidade Y)
-//y = -0.016x + 0.4
-
-//DERIVADA DE DERIVADA (Aceleração Y)
-//y = -0.016
 
 double posX(double t){
 	double x = -0.005*pow(t,2)+0.5*t+1;
@@ -91,20 +79,36 @@ double velY(double t){
 	return vy;
 }
 
-double cotan(double num){
-	return(1 / tan(num));
+double movimentoDoRobo(double t, double tempoAce, double tempoDesace){
+	double altura, base, BASE, areaTriangulo, areaTrapezio;
+	if(t <= (tempoAce+tempoDesace)){
+		altura = (AMAX*t)/2;
+		base = t;
+		areaTriangulo = (altura*base)/2;
+		return areaTriangulo;
+	}
+	else{
+		altura = VMAX;
+		BASE = t;
+		base = t-(tempoAce+tempoDesace);
+		
+		areaTrapezio = ((BASE+base)*altura)/2;
+		
+		return areaTrapezio;
+	}
 }
 
-void movimentoDoRobo(int t){
-	double vMax = 2; // m/s
-	double aMax = 0.2; // m/s²
-	double tempoAce = vMax/aMax;
-	double tempoDesace = tempoAce;
-}
-
-int sorvetao(double S0, double V0, double t, double a){
-	double S = S0 + V0*t + (a*t*t)/2;
+double sorvetao(double S0x, double S0y, double V0x, double V0y, double ax, double ay, double t, double RX, double RY, double P){
+	double Sx = S0x + V0x*t + (ax*t*t)/2;
+	double Sy = S0y + V0y*t + (ay*t*t)/2;
+	double dX = abs(abs(Sx)-abs(RX));
+	double dY = abs(abs(Sy)-abs(RY));
+	double S = sqrt((dX*dX)+(dY*dY));
+	
+	dist = abs(abs(S)-abs(P));
 	cout << "S = " << S << "; em t = " << t << endl;
+	if(dist<=RAIO) return t;
+	else return -1;
 }
 
 int tempoSorvetao(double S0, double V0, double S, double a){
@@ -114,24 +118,33 @@ int tempoSorvetao(double S0, double V0, double S, double a){
 
 // Km Hm Dam m Dm Cm Mm
 int main(){
-	//A max = 0.05 m/s²
-	//V max = 0.10 m/s
-	//Raio de interceptação: 0.20 m
-	//Coef Angular = deltaY / deltaX
-	//
-
-	vector<double> t, x, y, vx, vy, ax, ay, Rx, Ry, Rvx, Rvy, Rax, Ray;
+	vector<double> t, x, y, vx, vy, ax, ay, Rx, Ry, Rvx, Rvy, Rax, Ray, Spotencial;
 	map<int, double> indexToSec;
 	map<double, int> secToIndex;
-	int i;
+	int i=0;
 	double sec;
 	string linha;
-	double Amax = 0.05, Vmax = 0.10;
-	double RX, RY, RAIO=0.2;
+	double RX, RY;
+	
+	double tempoAce = VMAX/AMAX;
+	double tempoDesace = tempoAce;
+	for(sec=0; sec<=20; sec+=0.02){
+		secToIndex[sec] = i;
+		indexToSec[i] = sec;
+		cout << fixed << "sec = " << sec << " S = " << movimentoDoRobo(sec, tempoAce, tempoDesace) << endl;
+		Spotencial.push_back(movimentoDoRobo(sec, tempoAce, tempoDesace));
+		i++;
+	}
 	srand (time(NULL));
-	//cout << "Digite as cordenadas X e Y do robo:" << endl;
-	//cin >> RX >> RY;
 	double total;
+	/*
+	do{
+		cout << "Digite as cordenadas X e Y do robo:" << endl;
+		cin >> RX >> RY;
+		double restoX = abs(1.000-abs(RX)), restoY = abs(0.500-abs(RY));
+		total = sqrt((abs(restoX)*abs(restoX))+(abs(restoY)*abs(restoY)));
+	}while(total>1.000);
+	*/
 	do{
 		int random;
 		random = rand() % 2000;
@@ -156,8 +169,8 @@ int main(){
 		outfile << "y/m;";
 		outfile << "vx/m/s;";
 		outfile << "vy/m/s;";
-		outfile << "ax/m/s²;";
-		outfile << "ay/m/s²;";
+		outfile << "ax/m/sÂ²;";
+		outfile << "ay/m/sÂ²;";
 		outfile << "dist/m;";
 		outfile << "Rx/m;";
 		outfile << "Ry/m\n";
@@ -166,26 +179,8 @@ int main(){
 		sec=0;
 		i=0;
 		while ( getline (myfile,linha) ){
-
-			/*
-			vax =
-			vay =
-			xa = vax * t;
-			ya = vay * t;
-			vbx =
-			vby =
-			d =
-			xb = vbx * t * d;
-			yb = vby * t;
-
-			xintersecao = ((-vby/vbx)*d)/((vay/vax)-(vby/vbx));
-
-			yintersecao = (vay/vax) * xintersecao;
-			*/
 			double T, X, Y;
 			double deltaX, deltaY, distancia;
-			secToIndex[sec] = i;
-			indexToSec[i] = sec;
 			formatar(linha, &T, &X, &Y);
 			if(i > 0 && T==0) continue;
 
@@ -203,7 +198,7 @@ int main(){
 			distancia = sqrt((pow(deltaX,2)+pow(deltaY,2)));
 
 			//sorvetao(x[0], vx[0], t[i], ax[i]);
-			tempoSorvetao(x[0], vx[0], x[i], ax[i]);
+			//tempoSorvetao(x[0], vx[0], x[i], ax[i]);
 			outfile << t[i] << ";";
 			outfile << x[i] << ";";
 			outfile << y[i] << ";";
@@ -216,6 +211,11 @@ int main(){
 			outfile << RY << "\n";
 			if(distancia <= RAIO) break;
 			
+			if(i==0){
+				for(double tempo=0; tempo<=20; tempo+=0.02){
+					sorvetao(x[0], y[0], vx[0], vy[0], ax[0], ay[0], tempo, RX, RY, Spotencial[secToIndex[tempo]]);
+				}
+			}
 			//Sleep(20);
 			i++;
 			sec+=0.02;
