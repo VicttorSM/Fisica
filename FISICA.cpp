@@ -19,8 +19,10 @@
 using namespace std;
 
 
-struct Robo{	
+struct Robo{
 	vector<double> x, y, vx, vy, ax, ay, p;
+	pair<double, double> ace, nu, des;
+	vector<double> a, v, s;
 };
 
 struct Bola{
@@ -94,14 +96,14 @@ double movimentoDoRobo(double t, double tempoAce, double tempoDesace){
 		altura = VMAX;
 		BASE = t;
 		base = t-(tempoAce+tempoDesace);
-		
+
 		areaTrapezio = ((BASE+base)*altura)/2;
-		
+
 		return areaTrapezio;
 	}
 }
 
-double teste(double t, struct Robo r, struct Bola b, int i, double* dist, double* dX, double* dY){
+double teste(double t, struct Robo r, struct Bola b, int i, double* dist, double* dX, double* dY, double* time){
 	/*
 	cout << "Dentro do SVT t=" << t << endl;
 	cout << "bx0 = " << b.x[0] << endl;
@@ -121,18 +123,15 @@ double teste(double t, struct Robo r, struct Bola b, int i, double* dist, double
 	*dist = sqrt((*dX* *dX)+(*dY * *dY));
 	//cout << "dist =" << *dist << endl;
 	double dif = abs( abs(*dist) - abs(r.p[i]));
-	
+
 	if(Sx<r.x[0]) *dX = -1 * *dX;
 	if(Sy<r.y[0]) *dY = -1 * *dY;
-	
+
 	//cout << "dif = " << dif << "; em t = " << t << endl;
+	cout << "Retorna t = " << t << endl;
+	*time = t;
 	if(dif<=RAIO) return t;
 	else return -1;
-}
-
-int tempoSorvetao(double S0, double V0, double S, double a){
-	double t = sqrt((2*(S-S0))/(2*(V0+a)));
-	cout << "t = " << t << "; em S = " << S << endl;
 }
 
 // Km Hm Dam m Dm Cm Mm
@@ -147,10 +146,10 @@ int main(){
 	double sec;
 	string linha;
 	double RX, RY;
-	
+
 	double tempoAce = VMAX/AMAX;
 	double tempoDesace = tempoAce;
-	for(sec=0; sec<=20; sec+=0.02){
+	for(sec=0; sec<=20.02; sec+=0.02){
 		secToIndex[sec] = i;
 		indexToSec[i] = sec;
 		//cout << fixed << "sec = " << sec << " S = " << movimentoDoRobo(sec, tempoAce, tempoDesace) << endl;
@@ -176,7 +175,7 @@ int main(){
 		total = sqrt((abs(restoX)*abs(restoX))+(abs(restoY)*abs(restoY)));
 	}while(total>1.000);
 	*/
-	
+
 	cout << "RX = " << RX << "; RY = " << RY << endl;
 	// LEITURA E PREENCHIMENTO DE VETORES EM TEMPO REAL
 	ifstream myfile ("Ora_bolas-trajetoria _bola_oficial.dat");
@@ -194,19 +193,20 @@ int main(){
 		outfile << "dist/m;";
 		outfile << "Rx/m;";
 		outfile << "Ry/m\n";
-		
+
 		getline(myfile,linha); //linha ignorada
 		sec=0;
 		i=0;
 		double dist=0, distX=0, distY=0;
 		double T, X, Y;
 		double deltaX, deltaY, distanciaRB, razao=0.0;
+		int startAce=0, fimAce=0, startDesace=0, fimDesace=0;
 		while ( getline (myfile,linha) ){
 			formatar(linha, &T, &X, &Y);
 			if(i > 0 && T==0) continue;
 
 			t.push_back(T);
-			
+
 			b.x.push_back(X);
 			b.y.push_back(Y);
 			b.vx.push_back(velX(T));
@@ -218,40 +218,94 @@ int main(){
 				cout << "Entrou no i==0" << endl;
 				r.x.push_back(RX);
 				r.y.push_back(RY);
+				r.v.push_back(0);
 				r.vx.push_back(0);
 				r.vy.push_back(0);
+				r.s.push_back(0);
 				int aux=0;
 				for(double tempo=0; tempo<=20; tempo+=0.02){
-					if(tempoDeInt=teste(tempo, r, b, aux, &dist, &distX, &distY)!=-1){
+					if(teste(tempo, r, b, aux, &dist, &distX, &distY, &tempoDeInt)!=-1){
 						cout << "ENCONTRADO PONTO DE INTERSECCAO" << endl;
 						break;
 					}
 					aux++;
 				}
+				if(tempoDeInt <= (tempoAce+tempoDesace)){
+					r.ace.first = 0;
+					r.ace.second = tempoDeInt/2;
+					r.nu.first = -1;
+					r.nu.second = -1;
+					r.des.first = tempoDeInt/2;
+					r.des.second = tempoDeInt/2+tempoDesace;
+				}
+				else{
+					r.ace.first = 0;
+					r.ace.second = tempoAce;
+					r.nu.first = tempoAce;
+					r.nu.second = tempoDeInt -(tempoAce+tempoDesace) + tempoAce;
+					r.des.first = r.nu.second;
+					r.des.second = r.nu.second + tempoDesace;
+				}
+				
 				cout << "tempo de int = " << tempoDeInt << endl;
-				cout << "disttt  =  " << dist << endl;
+				//cout << "dist = " << dist << endl;
 			}
 			else{
+				cout << "distX = " << distX << endl;
+				cout << "distY = " << distY << endl;
 				r.x.push_back(RX+(distX*razao));
 				r.y.push_back(RY+(distY*razao));
 			}
 			deltaX = abs(abs(b.x[i])-abs(r.x[i]));
 			deltaY = abs(abs(b.y[i])-abs(r.y[i]));
 			distanciaRB = sqrt((pow(deltaX,2)+pow(deltaY,2)));
-			
+
 			if(i==0){
 				if(distanciaRB<=RAIO){
+					r.a.push_back(0);
 					r.ax.push_back(0);
 					r.ay.push_back(0);
 				}
 				else{
+					r.a.push_back(AMAX);
 					r.ax.push_back(AMAX);
 					r.ay.push_back(AMAX);
 				}
+				for(double tempo=0.02; tempo<tempoDeInt; tempo+=0.02){
+					if(tempo >= r.ace.first && tempo < r.ace.second){
+						r.a.push_back(AMAX);
+						r.v.push_back(r.v[secToIndex[tempo]-1]+ r.a[secToIndex[tempo-0.02]]*0.02);
+						r.s.push_back(r.s[secToIndex[tempo]-1]+r.v[secToIndex[tempo]]*0.02);
+					}
+					else if(tempo >= r.nu.first && tempo < r.nu.second){
+						r.a.push_back(0);
+						r.v.push_back(r.v[secToIndex[tempo]-1]);
+						r.s.push_back(r.s[secToIndex[tempo]-1]+r.v[secToIndex[tempo]]*0.02);
+					}
+					else{
+						r.a.push_back(-AMAX);
+						r.v.push_back(r.v[secToIndex[tempo]-1] + r.a[secToIndex[tempo-0.02]]*0.02);
+						r.s.push_back(r.s[secToIndex[tempo]-1]+r.v[secToIndex[tempo]]*0.02);
+					}
+					cout << tempo << " = " << r.a[secToIndex[tempo]] << endl;
+					cout << tempo << " = " << r.v[secToIndex[tempo]] << endl;
+					cout << tempo << " = " << r.s[secToIndex[tempo]] << endl;
+					cout << tempo << " = " << r.p[secToIndex[tempo]] << endl << endl;
+				}
+				
+				r.a.push_back(-AMAX);
+				r.v.push_back(0);
+				r.s.push_back(r.p[secToIndex[tempoDeInt]]);
+				cout << tempoDeInt << " = " << r.a[secToIndex[tempoDeInt+0.0]] << endl;
+				cout << tempoDeInt << " = " << r.v[secToIndex[tempoDeInt+0.0]] << endl;
+				cout << tempoDeInt << " = " << r.s[secToIndex[tempoDeInt+0.0]] << endl;
+				cout << tempoDeInt << " = " << r.p[secToIndex[tempoDeInt+0.0]] << endl << endl;
 			}
-			
-			razao = r.p[i+1]/dist;
-			cout << r.p[i+1] << "/" << dist << endl;
+			else{
+			}
+
+			razao = r.s[i+1]/dist;
+			cout << r.s[i+1] << "/" << dist << endl;
 			cout << "razao = " << razao << endl;
 			//sorvetao(x[0], vx[0], t[i], ax[i]);
 			//tempoSorvetao(x[0], vx[0], x[i], ax[i]);
@@ -266,7 +320,7 @@ int main(){
 			outfile << r.x[i] << ";";
 			outfile << r.y[i] << "\n";
 			if(distanciaRB <= RAIO) break;
-			
+
 			//Sleep(20);
 			i++;
 			sec+=0.02;
