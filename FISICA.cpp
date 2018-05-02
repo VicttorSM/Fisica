@@ -19,6 +19,14 @@
 using namespace std;
 
 
+struct Robo{	
+	vector<double> x, y, vx, vy, ax, ay, p;
+};
+
+struct Bola{
+	vector<double> x, y, vx, vy, ax, ay;
+};
+
 double stringToDouble (string Text){
 	double Result;
 	stringstream convert(Text);
@@ -59,14 +67,9 @@ void formatar(string linha, double* T, double* X, double* Y){
 	*Y = stringToDouble(sY);
 }
 
-double posX(double t){
-	double x = -0.005*pow(t,2)+0.5*t+1;
-	return x;
-}
-
-double posY(double t){
-	double y = -0.008*pow(t,2)+0.4*t+0.5;
-	return y;
+double posicao(double S0, double V0, double a, double t){
+	double S = S0 + V0*t + a*pow(t,2);
+	return S;
 }
 
 double velX(double t){
@@ -98,16 +101,32 @@ double movimentoDoRobo(double t, double tempoAce, double tempoDesace){
 	}
 }
 
-double sorvetao(double S0x, double S0y, double V0x, double V0y, double ax, double ay, double t, double RX, double RY, double P){
-	double Sx = S0x + V0x*t + (ax*t*t)/2;
-	double Sy = S0y + V0y*t + (ay*t*t)/2;
-	double dX = abs(abs(Sx)-abs(RX));
-	double dY = abs(abs(Sy)-abs(RY));
-	double S = sqrt((dX*dX)+(dY*dY));
+double teste(double t, struct Robo r, struct Bola b, int i, double* dist, double* dX, double* dY){
+	/*
+	cout << "Dentro do SVT t=" << t << endl;
+	cout << "bx0 = " << b.x[0] << endl;
+	cout << "by0 = " << b.y[0] << endl;
+	cout << "bvx0 = " << b.vx[0] << endl;
+	cout << "bvy0 = " << b.vy[0] << endl;
+	cout << "bax0 = " << b.ax[0] << endl;
+	cout << "bay0 = " << b.ay[0] << endl;
+	cout << "rx0 = " << r.x[0] << endl;
+	cout << "ry0 = " << r.y[0] << endl;
+	cout << "rp[" << i << "] = " << r.p[i] << endl;
+	*/
+	double Sx = posicao(b.x[0], b.vx[0], b.ax[0], t);
+	double Sy = posicao(b.y[0], b.vy[0], b.ay[0], t);
+	*dX = abs(abs(Sx)-abs(r.x[0]));
+	*dY = abs(abs(Sy)-abs(r.y[0]));
+	*dist = sqrt((*dX* *dX)+(*dY * *dY));
+	//cout << "dist =" << *dist << endl;
+	double dif = abs( abs(*dist) - abs(r.p[i]));
 	
-	dist = abs(abs(S)-abs(P));
-	cout << "S = " << S << "; em t = " << t << endl;
-	if(dist<=RAIO) return t;
+	if(Sx<r.x[0]) *dX = -1 * *dX;
+	if(Sy<r.y[0]) *dY = -1 * *dY;
+	
+	//cout << "dif = " << dif << "; em t = " << t << endl;
+	if(dif<=RAIO) return t;
 	else return -1;
 }
 
@@ -118,7 +137,10 @@ int tempoSorvetao(double S0, double V0, double S, double a){
 
 // Km Hm Dam m Dm Cm Mm
 int main(){
-	vector<double> t, x, y, vx, vy, ax, ay, Rx, Ry, Rvx, Rvy, Rax, Ray, Spotencial;
+	double tempoDeInt = -1;
+	struct Bola b;
+	struct Robo r;
+	vector<double> t;
 	map<int, double> indexToSec;
 	map<double, int> secToIndex;
 	int i=0;
@@ -131,20 +153,19 @@ int main(){
 	for(sec=0; sec<=20; sec+=0.02){
 		secToIndex[sec] = i;
 		indexToSec[i] = sec;
-		cout << fixed << "sec = " << sec << " S = " << movimentoDoRobo(sec, tempoAce, tempoDesace) << endl;
-		Spotencial.push_back(movimentoDoRobo(sec, tempoAce, tempoDesace));
+		//cout << fixed << "sec = " << sec << " S = " << movimentoDoRobo(sec, tempoAce, tempoDesace) << endl;
+		r.p.push_back(movimentoDoRobo(sec, tempoAce, tempoDesace));
 		i++;
 	}
 	srand (time(NULL));
 	double total;
-	/*
 	do{
 		cout << "Digite as cordenadas X e Y do robo:" << endl;
 		cin >> RX >> RY;
 		double restoX = abs(1.000-abs(RX)), restoY = abs(0.500-abs(RY));
 		total = sqrt((abs(restoX)*abs(restoX))+(abs(restoY)*abs(restoY)));
 	}while(total>1.000);
-	*/
+	/*
 	do{
 		int random;
 		random = rand() % 2000;
@@ -154,8 +175,7 @@ int main(){
 		double restoX = abs(1.000-abs(RX)), restoY = abs(0.500-abs(RY));
 		total = sqrt((abs(restoX)*abs(restoX))+(abs(restoY)*abs(restoY)));
 	}while(total>1.000);
-	
-
+	*/
 	
 	cout << "RX = " << RX << "; RY = " << RY << endl;
 	// LEITURA E PREENCHIMENTO DE VETORES EM TEMPO REAL
@@ -178,44 +198,75 @@ int main(){
 		getline(myfile,linha); //linha ignorada
 		sec=0;
 		i=0;
+		double dist=0, distX=0, distY=0;
+		double T, X, Y;
+		double deltaX, deltaY, distanciaRB, razao=0.0;
 		while ( getline (myfile,linha) ){
-			double T, X, Y;
-			double deltaX, deltaY, distancia;
 			formatar(linha, &T, &X, &Y);
 			if(i > 0 && T==0) continue;
 
 			t.push_back(T);
-			x.push_back(X);
-			y.push_back(Y);
 			
-			vx.push_back(velX(T));
-			vy.push_back(velY(T));
-			ax.push_back(-0.01);
-			ay.push_back(-0.016);
-			
-			deltaX = abs(abs(x[i])-abs(RX));
-			deltaY = abs(abs(y[i])-abs(RY));
-			distancia = sqrt((pow(deltaX,2)+pow(deltaY,2)));
+			b.x.push_back(X);
+			b.y.push_back(Y);
+			b.vx.push_back(velX(T));
+			b.vy.push_back(velY(T));
+			b.ax.push_back(-0.01);
+			b.ay.push_back(-0.016);
 
+			if(i==0){
+				cout << "Entrou no i==0" << endl;
+				r.x.push_back(RX);
+				r.y.push_back(RY);
+				r.vx.push_back(0);
+				r.vy.push_back(0);
+				int aux=0;
+				for(double tempo=0; tempo<=20; tempo+=0.02){
+					if(tempoDeInt=teste(tempo, r, b, aux, &dist, &distX, &distY)!=-1){
+						cout << "ENCONTRADO PONTO DE INTERSECCAO" << endl;
+						break;
+					}
+					aux++;
+				}
+				cout << "tempo de int = " << tempoDeInt << endl;
+				cout << "disttt  =  " << dist << endl;
+			}
+			else{
+				r.x.push_back(RX+(distX*razao));
+				r.y.push_back(RY+(distY*razao));
+			}
+			deltaX = abs(abs(b.x[i])-abs(r.x[i]));
+			deltaY = abs(abs(b.y[i])-abs(r.y[i]));
+			distanciaRB = sqrt((pow(deltaX,2)+pow(deltaY,2)));
+			
+			if(i==0){
+				if(distanciaRB<=RAIO){
+					r.ax.push_back(0);
+					r.ay.push_back(0);
+				}
+				else{
+					r.ax.push_back(AMAX);
+					r.ay.push_back(AMAX);
+				}
+			}
+			
+			razao = r.p[i+1]/dist;
+			cout << r.p[i+1] << "/" << dist << endl;
+			cout << "razao = " << razao << endl;
 			//sorvetao(x[0], vx[0], t[i], ax[i]);
 			//tempoSorvetao(x[0], vx[0], x[i], ax[i]);
 			outfile << t[i] << ";";
-			outfile << x[i] << ";";
-			outfile << y[i] << ";";
-			outfile << vx[i] << ";";
-			outfile << vy[i] << ";";
-			outfile << ax[i] << ";";
-			outfile << ay[i] << ";";
-			outfile << distancia << ";";
-			outfile << RX << ";";
-			outfile << RY << "\n";
-			if(distancia <= RAIO) break;
+			outfile << b.x[i] << ";";
+			outfile << b.y[i] << ";";
+			outfile << b.vx[i] << ";";
+			outfile << b.vy[i] << ";";
+			outfile << b.ax[i] << ";";
+			outfile << b.ay[i] << ";";
+			outfile << distanciaRB << ";";
+			outfile << r.x[i] << ";";
+			outfile << r.y[i] << "\n";
+			if(distanciaRB <= RAIO) break;
 			
-			if(i==0){
-				for(double tempo=0; tempo<=20; tempo+=0.02){
-					sorvetao(x[0], y[0], vx[0], vy[0], ax[0], ay[0], tempo, RX, RY, Spotencial[secToIndex[tempo]]);
-				}
-			}
 			//Sleep(20);
 			i++;
 			sec+=0.02;
