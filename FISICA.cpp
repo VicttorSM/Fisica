@@ -128,7 +128,6 @@ double teste(double t, struct Robo r, struct Bola b, int i, double* dist, double
 	if(Sy<r.y[0]) *dY = -1 * *dY;
 
 	//cout << "dif = " << dif << "; em t = " << t << endl;
-	cout << "Retorna t = " << t << endl;
 	*time = t;
 	if(dif<=RAIO) return t;
 	else return -1;
@@ -251,8 +250,6 @@ int main(){
 				//cout << "dist = " << dist << endl;
 			}
 			else{
-				cout << "distX = " << distX << endl;
-				cout << "distY = " << distY << endl;
 				r.x.push_back(RX+(distX*razao));
 				r.y.push_back(RY+(distY*razao));
 			}
@@ -271,7 +268,7 @@ int main(){
 					r.ax.push_back(AMAX);
 					r.ay.push_back(AMAX);
 				}
-				for(double tempo=0.02; tempo<tempoDeInt; tempo+=0.02){
+				for(double tempo=0.02; tempo<=tempoDeInt; tempo+=0.02){
 					if(tempo >= r.ace.first && tempo < r.ace.second){
 						r.a.push_back(AMAX);
 						r.v.push_back(r.v[secToIndex[tempo]-1]+ r.a[secToIndex[tempo-0.02]]*0.02);
@@ -292,14 +289,6 @@ int main(){
 					cout << tempo << " = " << r.s[secToIndex[tempo]] << endl;
 					cout << tempo << " = " << r.p[secToIndex[tempo]] << endl << endl;
 				}
-				
-				r.a.push_back(-AMAX);
-				r.v.push_back(0);
-				r.s.push_back(r.p[secToIndex[tempoDeInt]]);
-				cout << tempoDeInt << " = " << r.a[secToIndex[tempoDeInt+0.0]] << endl;
-				cout << tempoDeInt << " = " << r.v[secToIndex[tempoDeInt+0.0]] << endl;
-				cout << tempoDeInt << " = " << r.s[secToIndex[tempoDeInt+0.0]] << endl;
-				cout << tempoDeInt << " = " << r.p[secToIndex[tempoDeInt+0.0]] << endl << endl;
 			}
 			else{
 			}
