@@ -13,8 +13,8 @@
 //Aceleração em m/s²
 //Raio em m
 #define VMAX 2
-#define AMAX 0.5
-#define RAIO 0.2
+#define AMAX 0.1
+#define RAIO 0.1
 
 using namespace std;
 
@@ -70,7 +70,7 @@ void formatar(string linha, double* T, double* X, double* Y){
 }
 
 double posicao(double S0, double V0, double a, double t){
-	double S = S0 + V0*t + a*pow(t,2);
+	double S = S0 + (V0*t) + (a*pow(t,2))/2;
 	return S;
 }
 
@@ -84,25 +84,57 @@ double velY(double t){
 	return vy;
 }
 
-double movimentoDoRobo(double t, double tempoAce, double tempoDesace){
-	double altura, base, BASE, areaTriangulo, areaTrapezio;
-	if(t <= (tempoAce+tempoDesace)){
-		altura = (AMAX*t)/2;
+double movimentoDoRobo(double t, double tempoAce){
+	double altura, base, BASE, areaTriangulo, areaRetangulo;
+	if(t <= tempoAce){
+		/*
+		altura = AMAX*t;
 		base = t;
 		areaTriangulo = (altura*base)/2;
+		*/
+		
+		areaTriangulo = (AMAX*pow(t,2))/2;
 		return areaTriangulo;
 	}
 	else{
+		/*
 		altura = VMAX;
-		BASE = t;
-		base = t-(tempoAce+tempoDesace);
+		base = tempoAce;
+		areaTriangulo = (altura*base)/2;
+		*/
+		areaTriangulo = (AMAX*pow(tempoAce,2))/2;
 
-		areaTrapezio = ((BASE+base)*altura)/2;
+		areaRetangulo = VMAX*(t-tempoAce);
 
-		return areaTrapezio;
+		return (areaTriangulo+areaRetangulo);
 	}
 }
 
+double velocidadeRobo(double t, double tempoAce){	
+	double vel;
+	if(t <= tempoAce){
+		/*
+		altura = AMAX*t;
+		base = t;
+		areaTriangulo = (altura*base)/2;
+		areaTriangulo = (AMAX*pow(t,2))/2;
+		*/
+		vel = AMAX*t;
+		return vel;
+	}
+	else{
+		/*
+		altura = VMAX;
+		base = tempoAce;
+		areaTriangulo = (altura*base)/2;
+		areaTriangulo = (AMAX*pow(tempoAce,2))/2;
+		*/
+		vel = AMAX*tempoAce + VMAX;
+
+		return vel;
+	}
+	
+}
 double teste(double t, struct Robo r, struct Bola b, int i, double* dist, double* dX, double* dY, double* time){
 	/*
 	cout << "Dentro do SVT t=" << t << endl;
@@ -118,18 +150,20 @@ double teste(double t, struct Robo r, struct Bola b, int i, double* dist, double
 	*/
 	double Sx = posicao(b.x[0], b.vx[0], b.ax[0], t);
 	double Sy = posicao(b.y[0], b.vy[0], b.ay[0], t);
-	*dX = abs(abs(Sx)-abs(r.x[0]));
-	*dY = abs(abs(Sy)-abs(r.y[0]));
+	*dX = abs(Sx-r.x[0]);
+	*dY = abs(Sy-r.y[0]);
 	*dist = sqrt((*dX* *dX)+(*dY * *dY));
 	//cout << "dist =" << *dist << endl;
-	double dif = abs( abs(*dist) - abs(r.p[i]));
+	double dif = abs( *dist - r.p[i]);
 
 	if(Sx<r.x[0]) *dX = -1 * *dX;
 	if(Sy<r.y[0]) *dY = -1 * *dY;
 
 	//cout << "dif = " << dif << "; em t = " << t << endl;
 	*time = t;
-	if(dif<=RAIO) return t;
+	if(dif<=RAIO){
+		return t;
+	}
 	else return -1;
 }
 
@@ -147,12 +181,12 @@ int main(){
 	double RX, RY;
 
 	double tempoAce = VMAX/AMAX;
-	double tempoDesace = tempoAce;
+	cout << "tempoAce = " << tempoAce << endl;
 	for(sec=0; sec<=20.02; sec+=0.02){
 		secToIndex[sec] = i;
 		indexToSec[i] = sec;
 		//cout << fixed << "sec = " << sec << " S = " << movimentoDoRobo(sec, tempoAce, tempoDesace) << endl;
-		r.p.push_back(movimentoDoRobo(sec, tempoAce, tempoDesace));
+		r.p.push_back(movimentoDoRobo(sec, tempoAce));
 		i++;
 	}
 	srand (time(NULL));
@@ -160,8 +194,8 @@ int main(){
 	do{
 		cout << "Digite as cordenadas X e Y do robo:" << endl;
 		cin >> RX >> RY;
-		double restoX = abs(1.000-abs(RX)), restoY = abs(0.500-abs(RY));
-		total = sqrt((abs(restoX)*abs(restoX))+(abs(restoY)*abs(restoY)));
+		double restoX = abs(1.000-RX), restoY = abs(0.500-RY);
+		total = sqrt((restoX*restoX)+(restoY*restoY));
 	}while(total>1.000);
 	/*
 	do{
@@ -175,7 +209,7 @@ int main(){
 	}while(total>1.000);
 	*/
 
-	cout << "RX = " << RX << "; RY = " << RY << endl;
+	//cout << "RX = " << RX << "; RY = " << RY << endl;
 	// LEITURA E PREENCHIMENTO DE VETORES EM TEMPO REAL
 	ifstream myfile ("Ora_bolas-trajetoria _bola_oficial.dat");
 	ofstream outfile;
@@ -214,7 +248,7 @@ int main(){
 			b.ay.push_back(-0.016);
 
 			if(i==0){
-				cout << "Entrou no i==0" << endl;
+				//cout << "Entrou no i==0" << endl;
 				r.x.push_back(RX);
 				r.y.push_back(RY);
 				r.v.push_back(0);
@@ -229,32 +263,28 @@ int main(){
 					}
 					aux++;
 				}
-				if(tempoDeInt <= (tempoAce+tempoDesace)){
+				if(tempoDeInt < tempoAce){
 					r.ace.first = 0;
-					r.ace.second = tempoDeInt/2;
+					r.ace.second = tempoDeInt;
 					r.nu.first = -1;
 					r.nu.second = -1;
-					r.des.first = tempoDeInt/2;
-					r.des.second = tempoDeInt/2+tempoDesace;
 				}
 				else{
 					r.ace.first = 0;
 					r.ace.second = tempoAce;
 					r.nu.first = tempoAce;
-					r.nu.second = tempoDeInt -(tempoAce+tempoDesace) + tempoAce;
-					r.des.first = r.nu.second;
-					r.des.second = r.nu.second + tempoDesace;
+					r.nu.second = tempoDeInt;
 				}
 				
-				cout << "tempo de int = " << tempoDeInt << endl;
+				//cout << "tempo de int = " << tempoDeInt << endl;
 				//cout << "dist = " << dist << endl;
 			}
 			else{
 				r.x.push_back(RX+(distX*razao));
 				r.y.push_back(RY+(distY*razao));
 			}
-			deltaX = abs(abs(b.x[i])-abs(r.x[i]));
-			deltaY = abs(abs(b.y[i])-abs(r.y[i]));
+			deltaX = abs(b.x[i]-r.x[i]);
+			deltaY = abs(b.y[i]-r.y[i]);
 			distanciaRB = sqrt((pow(deltaX,2)+pow(deltaY,2)));
 
 			if(i==0){
@@ -269,33 +299,33 @@ int main(){
 					r.ay.push_back(AMAX);
 				}
 				for(double tempo=0.02; tempo<=tempoDeInt; tempo+=0.02){
-					if(tempo >= r.ace.first && tempo < r.ace.second){
+					if(tempo < tempoAce){
 						r.a.push_back(AMAX);
-						r.v.push_back(r.v[secToIndex[tempo]-1]+ r.a[secToIndex[tempo-0.02]]*0.02);
-						r.s.push_back(r.s[secToIndex[tempo]-1]+r.v[secToIndex[tempo]]*0.02);
-					}
-					else if(tempo >= r.nu.first && tempo < r.nu.second){
-						r.a.push_back(0);
-						r.v.push_back(r.v[secToIndex[tempo]-1]);
-						r.s.push_back(r.s[secToIndex[tempo]-1]+r.v[secToIndex[tempo]]*0.02);
 					}
 					else{
-						r.a.push_back(-AMAX);
-						r.v.push_back(r.v[secToIndex[tempo]-1] + r.a[secToIndex[tempo-0.02]]*0.02);
-						r.s.push_back(r.s[secToIndex[tempo]-1]+r.v[secToIndex[tempo]]*0.02);
+						r.a.push_back(0);
 					}
+					r.v.push_back(velocidadeRobo(tempo, tempoAce));
+					r.s.push_back(r.p[secToIndex[tempo]]);
+					/*
 					cout << tempo << " = " << r.a[secToIndex[tempo]] << endl;
 					cout << tempo << " = " << r.v[secToIndex[tempo]] << endl;
 					cout << tempo << " = " << r.s[secToIndex[tempo]] << endl;
-					cout << tempo << " = " << r.p[secToIndex[tempo]] << endl << endl;
+					cout << tempo << " = " << r.p[secToIndex[tempo]] << endl;
+					cout << "vel = " << velocidadeRobo(tempo, tempoAce) << endl << endl;
+					*/
 				}
 			}
 			else{
 			}
-
-			razao = r.s[i+1]/dist;
-			cout << r.s[i+1] << "/" << dist << endl;
-			cout << "razao = " << razao << endl;
+			
+			if(tempoDeInt != sec){
+				razao = r.s[i+1]/dist;
+				/*
+				cout << r.s[i+1] << "/" << dist << endl;
+				cout << "razao = " << razao << endl;
+				*/
+			}
 			//sorvetao(x[0], vx[0], t[i], ax[i]);
 			//tempoSorvetao(x[0], vx[0], x[i], ax[i]);
 			outfile << t[i] << ";";
@@ -308,7 +338,18 @@ int main(){
 			outfile << distanciaRB << ";";
 			outfile << r.x[i] << ";";
 			outfile << r.y[i] << "\n";
-			if(distanciaRB <= RAIO) break;
+			if(distanciaRB <= RAIO && tempoDeInt == sec){
+				cout << "Parado por interceptacao no tempo previsto" << endl;
+				break;
+			}
+			else if(distanciaRB <= RAIO){
+				cout << "Parado por interceptacao" << endl;
+				break;
+			}
+			else if(tempoDeInt == sec){
+				cout << "Parado por tempo limite" << endl;
+				break;
+			}
 
 			//Sleep(20);
 			i++;
