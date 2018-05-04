@@ -106,7 +106,7 @@ double velocidadeRobo(double t, double tempoAce){
 		vel = AMAX*t;
 	}
 	else{
-		vel = AMAX*tempoAce + VMAX;
+		vel = VMAX;
 	}
 	return vel;
 }
