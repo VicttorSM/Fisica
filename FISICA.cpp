@@ -143,7 +143,7 @@ int main(){
 	double RX, RY;
 
 	double tempoAce = VMAX/AMAX;
-	cout << "tempoAce = " << tempoAce << endl;
+	//cout << "tempoAce = " << tempoAce << endl;
 	for(sec=0; sec<=20.02; sec+=0.02){
 		secToIndex[sec] = i;
 		indexToSec[i] = sec;
