@@ -13,7 +13,7 @@
 //Aceleração em m/s²
 //Raio em m
 #define VMAX 2
-#define AMAX 0.1
+#define AMAX 2
 #define RAIO 0.1
 
 using namespace std;
@@ -87,21 +87,11 @@ double velY(double t){
 double movimentoDoRobo(double t, double tempoAce){
 	double altura, base, BASE, areaTriangulo, areaRetangulo;
 	if(t <= tempoAce){
-		/*
-		altura = AMAX*t;
-		base = t;
-		areaTriangulo = (altura*base)/2;
-		*/
 		
 		areaTriangulo = (AMAX*pow(t,2))/2;
 		return areaTriangulo;
 	}
 	else{
-		/*
-		altura = VMAX;
-		base = tempoAce;
-		areaTriangulo = (altura*base)/2;
-		*/
 		areaTriangulo = (AMAX*pow(tempoAce,2))/2;
 
 		areaRetangulo = VMAX*(t-tempoAce);
@@ -113,53 +103,24 @@ double movimentoDoRobo(double t, double tempoAce){
 double velocidadeRobo(double t, double tempoAce){	
 	double vel;
 	if(t <= tempoAce){
-		/*
-		altura = AMAX*t;
-		base = t;
-		areaTriangulo = (altura*base)/2;
-		areaTriangulo = (AMAX*pow(t,2))/2;
-		*/
 		vel = AMAX*t;
-		return vel;
 	}
 	else{
-		/*
-		altura = VMAX;
-		base = tempoAce;
-		areaTriangulo = (altura*base)/2;
-		areaTriangulo = (AMAX*pow(tempoAce,2))/2;
-		*/
 		vel = AMAX*tempoAce + VMAX;
-
-		return vel;
 	}
-	
+	return vel;
 }
 double teste(double t, struct Robo r, struct Bola b, int i, double* dist, double* dX, double* dY, double* time){
-	/*
-	cout << "Dentro do SVT t=" << t << endl;
-	cout << "bx0 = " << b.x[0] << endl;
-	cout << "by0 = " << b.y[0] << endl;
-	cout << "bvx0 = " << b.vx[0] << endl;
-	cout << "bvy0 = " << b.vy[0] << endl;
-	cout << "bax0 = " << b.ax[0] << endl;
-	cout << "bay0 = " << b.ay[0] << endl;
-	cout << "rx0 = " << r.x[0] << endl;
-	cout << "ry0 = " << r.y[0] << endl;
-	cout << "rp[" << i << "] = " << r.p[i] << endl;
-	*/
 	double Sx = posicao(b.x[0], b.vx[0], b.ax[0], t);
 	double Sy = posicao(b.y[0], b.vy[0], b.ay[0], t);
 	*dX = abs(Sx-r.x[0]);
 	*dY = abs(Sy-r.y[0]);
 	*dist = sqrt((*dX* *dX)+(*dY * *dY));
-	//cout << "dist =" << *dist << endl;
 	double dif = abs( *dist - r.p[i]);
 
 	if(Sx<r.x[0]) *dX = -1 * *dX;
 	if(Sy<r.y[0]) *dY = -1 * *dY;
-
-	//cout << "dif = " << dif << "; em t = " << t << endl;
+	
 	*time = t;
 	if(dif<=RAIO){
 		return t;
@@ -167,8 +128,9 @@ double teste(double t, struct Robo r, struct Bola b, int i, double* dist, double
 	else return -1;
 }
 
-// Km Hm Dam m Dm Cm Mm
+
 int main(){
+	vector<double> distanciaRoboBola;
 	double tempoDeInt = -1;
 	struct Bola b;
 	struct Robo r;
@@ -197,35 +159,12 @@ int main(){
 		double restoX = abs(1.000-RX), restoY = abs(0.500-RY);
 		total = sqrt((restoX*restoX)+(restoY*restoY));
 	}while(total>1.000);
-	/*
-	do{
-		int random;
-		random = rand() % 2000;
-		RX = (random)/1000.0;
-		random = rand() % 2000;
-		RY = (random-500)/1000.0;
-		double restoX = abs(1.000-abs(RX)), restoY = abs(0.500-abs(RY));
-		total = sqrt((abs(restoX)*abs(restoX))+(abs(restoY)*abs(restoY)));
-	}while(total>1.000);
-	*/
-
-	//cout << "RX = " << RX << "; RY = " << RY << endl;
+	
 	// LEITURA E PREENCHIMENTO DE VETORES EM TEMPO REAL
 	ifstream myfile ("Ora_bolas-trajetoria _bola_oficial.dat");
 	ofstream outfile;
 	if (myfile.is_open()){
 		cout << "O arquivo foi aberto" << endl;
-		outfile.open("Excel_file.csv");
-		outfile << "t/s;";
-		outfile << "x/m;";
-		outfile << "y/m;";
-		outfile << "vx/m/s;";
-		outfile << "vy/m/s;";
-		outfile << "ax/m/s²;";
-		outfile << "ay/m/s²;";
-		outfile << "dist/m;";
-		outfile << "Rx/m;";
-		outfile << "Ry/m\n";
 
 		getline(myfile,linha); //linha ignorada
 		sec=0;
@@ -233,7 +172,6 @@ int main(){
 		double dist=0, distX=0, distY=0;
 		double T, X, Y;
 		double deltaX, deltaY, distanciaRB, razao=0.0;
-		int startAce=0, fimAce=0, startDesace=0, fimDesace=0;
 		while ( getline (myfile,linha) ){
 			formatar(linha, &T, &X, &Y);
 			if(i > 0 && T==0) continue;
@@ -263,25 +201,16 @@ int main(){
 					}
 					aux++;
 				}
-				if(tempoDeInt < tempoAce){
-					r.ace.first = 0;
-					r.ace.second = tempoDeInt;
-					r.nu.first = -1;
-					r.nu.second = -1;
-				}
-				else{
-					r.ace.first = 0;
-					r.ace.second = tempoAce;
-					r.nu.first = tempoAce;
-					r.nu.second = tempoDeInt;
-				}
-				
-				//cout << "tempo de int = " << tempoDeInt << endl;
-				//cout << "dist = " << dist << endl;
 			}
 			else{
+				double diferencaPos;
 				r.x.push_back(RX+(distX*razao));
 				r.y.push_back(RY+(distY*razao));
+				
+				diferencaPos = r.x[i]-r.x[i-1];
+				r.vx.push_back(diferencaPos/0.02);
+				diferencaPos = r.y[i]-r.y[i-1];
+				r.vy.push_back(diferencaPos/0.02);
 			}
 			deltaX = abs(b.x[i]-r.x[i]);
 			deltaY = abs(b.y[i]-r.y[i]);
@@ -293,11 +222,6 @@ int main(){
 					r.ax.push_back(0);
 					r.ay.push_back(0);
 				}
-				else{
-					r.a.push_back(AMAX);
-					r.ax.push_back(AMAX);
-					r.ay.push_back(AMAX);
-				}
 				for(double tempo=0.02; tempo<=tempoDeInt; tempo+=0.02){
 					if(tempo < tempoAce){
 						r.a.push_back(AMAX);
@@ -307,13 +231,6 @@ int main(){
 					}
 					r.v.push_back(velocidadeRobo(tempo, tempoAce));
 					r.s.push_back(r.p[secToIndex[tempo]]);
-					/*
-					cout << tempo << " = " << r.a[secToIndex[tempo]] << endl;
-					cout << tempo << " = " << r.v[secToIndex[tempo]] << endl;
-					cout << tempo << " = " << r.s[secToIndex[tempo]] << endl;
-					cout << tempo << " = " << r.p[secToIndex[tempo]] << endl;
-					cout << "vel = " << velocidadeRobo(tempo, tempoAce) << endl << endl;
-					*/
 				}
 			}
 			else{
@@ -321,23 +238,8 @@ int main(){
 			
 			if(tempoDeInt != sec){
 				razao = r.s[i+1]/dist;
-				/*
-				cout << r.s[i+1] << "/" << dist << endl;
-				cout << "razao = " << razao << endl;
-				*/
 			}
-			//sorvetao(x[0], vx[0], t[i], ax[i]);
-			//tempoSorvetao(x[0], vx[0], x[i], ax[i]);
-			outfile << t[i] << ";";
-			outfile << b.x[i] << ";";
-			outfile << b.y[i] << ";";
-			outfile << b.vx[i] << ";";
-			outfile << b.vy[i] << ";";
-			outfile << b.ax[i] << ";";
-			outfile << b.ay[i] << ";";
-			outfile << distanciaRB << ";";
-			outfile << r.x[i] << ";";
-			outfile << r.y[i] << "\n";
+			distanciaRoboBola.push_back(distanciaRB);
 			if(distanciaRB <= RAIO && tempoDeInt == sec){
 				cout << "Parado por interceptacao no tempo previsto" << endl;
 				break;
@@ -354,6 +256,75 @@ int main(){
 			//Sleep(20);
 			i++;
 			sec+=0.02;
+		}
+		double AceConstX;
+		double AceConstY;
+		if(tempoDeInt!=0){
+			if(tempoDeInt>=tempoAce){
+				int z = r.vx.size()-1;
+				double AceFinal = r.vx[z];
+				
+				for(int j=1; j<r.vx.size(); j++){
+					if(r.vx[j]==r.vx[j-1]){
+						z = j-1;
+						AceFinal = r.vx[j-1];
+						break;
+					}
+				}
+				AceConstX = (r.vx[z]/z)/0.02;
+				AceConstY = (r.vy[z]/z)/0.02;
+			}
+			else{
+				AceConstX = (r.vx[secToIndex[tempoDeInt]]/secToIndex[tempoDeInt])/0.02;
+				AceConstY = (r.vy[secToIndex[tempoDeInt]]/secToIndex[tempoDeInt])/0.02;
+			}
+			for(double time=0; time<tempoDeInt; time+=0.02){
+				if(time<tempoAce && time!=tempoDeInt){
+					r.ax.push_back(AceConstX);
+					r.ay.push_back(AceConstY);
+				}
+				else{
+					r.ax.push_back(0);
+					r.ay.push_back(0);
+				}
+			}
+		}
+		r.ax.push_back(0);
+		r.ay.push_back(0);
+		outfile.open("Excel_file.csv");
+		outfile << "t/s;";
+		outfile << "x/m;";
+		outfile << "y/m;";
+		outfile << "vx/m/s;";
+		outfile << "vy/m/s;";
+		outfile << "ax/m/s²;";
+		outfile << "ay/m/s²;";
+		outfile << "dist/m;";
+		outfile << "Rx/m;";
+		outfile << "Ry/m;";
+		outfile << "Rvx/m/s;";
+		outfile << "Rvy/m/s;";
+		outfile << "Rax/m/s²;";
+		outfile << "Ray/m/s²\n";
+		i=0;
+		for(sec=0; sec<20; sec+=0.02){
+			outfile << t[i] << ";";
+			outfile << b.x[i] << ";";
+			outfile << b.y[i] << ";";
+			outfile << b.vx[i] << ";";
+			outfile << b.vy[i] << ";";
+			outfile << b.ax[i] << ";";
+			outfile << b.ay[i] << ";";
+			outfile << distanciaRoboBola[i] << ";";
+			outfile << r.x[i] << ";";
+			outfile << r.y[i] << ";";
+			outfile << r.vx[i] << ";";
+			outfile << r.vy[i] << ";";
+			outfile << r.ax[i] << ";";
+			outfile << r.ay[i] << "\n";
+			if(distanciaRoboBola[i]<=RAIO) break;
+			else if(tempoDeInt == sec) break;
+			i++;
 		}
 		myfile.close();
 		outfile.close();
